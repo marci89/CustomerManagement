@@ -285,9 +285,11 @@
 
             customerGrid.CancelEditRow(customer);
 
+        } else {
+            customer.Id = result.Result.Id;
         }
 
-        customer.Id = result.Result.Id;
+
         customersToInsert.Remove(customer);
         customers.Add(customer);
         customers = await customerService.List();

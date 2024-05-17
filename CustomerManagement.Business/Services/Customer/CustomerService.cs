@@ -18,7 +18,7 @@ namespace CustomerManagement.Business.Services
         {
             _httpClient = httpClient;
             _appSettings = appSettings;
-            apiBaseUrl = appSettings.ApiBaseUrl;   
+            apiBaseUrl = _appSettings.ApiBaseUrl;   
         }
 
         public async Task<Customer> ReadById(long id)
