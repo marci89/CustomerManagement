@@ -1,0 +1,297 @@
+﻿@page "/customerGrid"
+@using CustomerManagement.Business.Services
+@using CustomerManagement.Business.Models
+@using Business = CustomerManagement.Business.Models
+@inject CustomerService customerService
+@inject DialogService DialogService
+
+
+<h1 class="rz-text-align-center" >Customers</h1>
+
+
+<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="10px" class="mt-2 mb-4">
+    <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle_outline" Text="Add New Customer" Click="@InsertRow" Disabled="@(customersToInsert.Count() > 0)" />
+</RadzenStack>
+
+
+<div class="rz-text-align-center">
+        @if (!string.IsNullOrEmpty(@ErrorMessage))
+        {
+        <h3 style="color:red">@ErrorMessage</h3>
+
+        }
+
+</div>
+
+
+<RadzenDataGrid @ref="customerGrid" AllowAlternatingRows="false" Data="@customers" TItem="Business.Customer" AllowVirtualization="true" Style="height:500px" AllowPaging="true" PageSize="5"
+                AllowFiltering="true" FilterMode="FilterMode.Simple"  FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowSorting="true"
+                EditMode="@editMode" RowUpdate="@OnUpdateRow" RowCreate="@OnCreateRow"> 
+
+    <Columns>
+      
+
+        <RadzenDataGridColumn Property="Identifier" Title="Identifier">
+               <EditTemplate Context="customer">
+                <RadzenTextBox @bind-Value="customer.Identifier" Style="width:200px; display: block" Name="Identifier" aria-label="Enter Identifier" />
+                <RadzenRequiredValidator Text="Identifier is required" Component="Identifier" Popup="true" />
+          </EditTemplate>
+        </RadzenDataGridColumn>
+
+
+        <RadzenDataGridColumn Property="Category" Title="Customer category" FilterValue="@currentCustomerCategory">
+            <FilterTemplate>
+                <RadzenDropDown @bind-Value="@currentCustomerCategory"  TextProperty="Text" ValueProperty="Value" Style="width:100%;" InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "filter by title of courtesy" }})"
+                                Data="@(Enum.GetValues(typeof(CustomerCategory)).Cast<CustomerCategory?>().Select(t => new { Text = $"{t}", Value = t }))"
+                                Change="@((args) => OnSelectedCategoryChange(args))" />
+        
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="dangerous" Text="" Click="@ClearCategoryFilter" Disabled="@(currentCustomerCategory == null)" />
+                              
+
+            </FilterTemplate>
+
+            <EditTemplate Context="customer">
+                <RadzenDropDown @bind-Value="customer.Category" TextProperty="Text" ValueProperty="Value" Style="width:100%;" InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "filter by title of courtesy" }})"
+                                Data="@(Enum.GetValues(typeof(CustomerCategory)).Cast<CustomerCategory?>().Select(t => new { Text = $"{t}", Value = t }))" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+
+        <RadzenDataGridColumn Property="FirstName" Title="First name" >
+          <EditTemplate Context="customer">
+
+                @if (customer.Category == CustomerCategory.Residential) {
+                    <RadzenTextBox @bind-Value="customer.FirstName" Style="width:200px; display: block" Name="FirstName" aria-label="Enter first name" />
+                    <RadzenRequiredValidator Text="First name is required" Component="FirstName" Popup="true" />
+                }
+                else
+                {
+                    <RadzenTextBox @bind-Value="customer.FirstName" Style="width:200px; display: block" Name="FirstName" aria-label="Enter first name" />   
+                }
+          </EditTemplate>
+        </RadzenDataGridColumn>
+
+
+        <RadzenDataGridColumn Property="LastName" Title="Last name">
+            <EditTemplate Context="customer">
+                 @if (customer.Category == CustomerCategory.Residential) {
+                    <RadzenTextBox @bind-Value="customer.LastName" Style="width:200px; display: block" Name="LastName" aria-label="Enter last name" />
+                    <RadzenRequiredValidator Text="Last name is required" Component="LastName" Popup="true" />
+                }
+                else
+                {
+                    <RadzenTextBox @bind-Value="customer.LastName" Style="width:200px; display: block" Name="LastName" aria-label="Enter last name" />
+                }
+
+        
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn Property="ContactName" Title="Contact name" Filterable="false" >
+            <EditTemplate Context="customer">
+                <RadzenTextBox @bind-Value="customer.ContactName" Style="width:200px; display: block" Name="ContactName" aria-label="Enter contact name" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn Property="PhoneNumber" Title="Phone number" Filterable="false" >
+            <EditTemplate Context="customer">
+                <RadzenTextBox @bind-Value="customer.PhoneNumber" Style="width:200px; display: block" Name="PhoneNumber" aria-label="Enter phone number" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn Property="Address" Title="Address" Filterable="false">
+            <EditTemplate Context="customer">
+                <RadzenTextBox @bind-Value="customer.Address" Style="width:200px; display: block" Name="Address" aria-label="Enter address" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+
+
+        <RadzenDataGridColumn Context="customer" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+            <Template Context="customer">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(customer))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium" class="my-1 ms-1" Click="@(args => DeleteRow(customer))" @onclick:stopPropagation="true">
+                    </RadzenButton>
+                </Template>
+            <EditTemplate Context="customer">
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(customer))" aria-label="Save">
+                    </RadzenButton>
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="my-1 ms-1" Click="@((args) => CancelEdit(customer))" aria-label="Cancel">
+                    </RadzenButton>
+ 
+                </EditTemplate>
+            </RadzenDataGridColumn>
+
+
+    </Columns>
+</RadzenDataGrid>
+
+
+
+
+
+
+@code {
+
+    RadzenDataGrid<Business.Customer> customerGrid;
+    CustomerCategory? currentCustomerCategory;
+    List<Business.Customer> customers;
+
+    DataGridEditMode editMode = DataGridEditMode.Single;
+    List<Business.Customer> customersToInsert = new List<Business.Customer>();
+    List<Business.Customer> customersToUpdate = new List<Business.Customer>();
+
+
+    string ErrorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await customerService.List();
+    }
+
+
+
+
+
+    async Task  ClearCategoryFilter()
+    {
+        currentCustomerCategory = null;
+        await OnSelectedCategoryChange(null);
+    }
+
+    async Task OnSelectedCategoryChange(object value)
+    {
+
+        currentCustomerCategory = (CustomerCategory?)value;
+        if (currentCustomerCategory == null)
+        {
+
+            customers = await customerService.List();
+        }
+        else
+        {
+            customers = await customerService.List();
+            customers = customers.Where(c => c.Category == currentCustomerCategory).ToList();
+        }   
+    }
+
+
+
+
+    void Reset()
+    {
+        customersToInsert.Clear();
+        customersToUpdate.Clear();
+        ErrorMessage = "";
+    }
+
+    void Reset(Business.Customer customer)
+    {
+        customersToInsert.Remove(customer);
+        customersToUpdate.Remove(customer);
+        ErrorMessage = "";
+    }
+
+
+    async Task EditRow(Business.Customer customer)
+    {
+
+
+
+        if (editMode == DataGridEditMode.Single && customersToInsert.Count() > 0)
+        {
+            Reset();
+        }
+
+        customersToUpdate.Add(customer);
+        await customerGrid.EditRow(customer);
+    }
+
+    async Task OnUpdateRow(Business.Customer customer)
+    {
+
+        Reset(customer);
+
+        var result = await customerService.Update(customer);
+
+        if (result.HasError)
+        {
+            ErrorMessage = result.ErrorMessage;
+
+            customerGrid.CancelEditRow(customer);
+
+        }
+        customersToUpdate.Remove(customer);
+        customers.Add(customer);
+        customers = await customerService.List();
+
+    }
+
+    async Task SaveRow(Business.Customer customer)
+    {
+
+        await customerGrid.UpdateRow(customer);
+    }
+
+    void CancelEdit(Business.Customer customer)
+    {
+        Reset(customer);
+
+        customerGrid.CancelEditRow(customer);
+    }
+
+    async Task DeleteRow(Business.Customer customer)
+    {
+
+        if (customers.Contains(customer))
+        {
+            await customerService.Delete(customer.Id);
+            customers.Remove(customer);
+            customers = await customerService.List();
+        }
+        else
+        {
+            customerGrid.CancelEditRow(customer);
+            customers = await customerService.List();
+        }
+
+        Reset();
+    }
+
+    async Task InsertRow()
+    {
+        customers = await customerService.List();
+        if (editMode == DataGridEditMode.Single)
+        {
+            Reset();
+        }
+
+        var customer = new Business.Customer();
+        customersToInsert.Add(customer);
+
+        customers.Add(customer);
+
+        await customerGrid.InsertRow(customer);
+
+    }
+
+    async Task  OnCreateRow(Business.Customer customer)
+    {
+        var result = await customerService.Create(customer);
+
+        if (result.HasError)
+        {
+            ErrorMessage = result.ErrorMessage;
+
+            customerGrid.CancelEditRow(customer);
+
+        }
+
+        customer.Id = result.Result.Id;
+        customersToInsert.Remove(customer);
+        customers.Add(customer);
+        customers = await customerService.List();
+
+    }
+
+}
