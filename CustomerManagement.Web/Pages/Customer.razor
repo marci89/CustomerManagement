@@ -106,7 +106,7 @@
         </RadzenDataGridColumn>
 
 
-        <RadzenDataGridColumn Context="customer" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+        <RadzenDataGridColumn Context="customer" Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Width="100px">
             <Template Context="customer">
                 <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@(args => EditRow(customer))" @onclick:stopPropagation="true">
                     </RadzenButton>
@@ -141,27 +141,24 @@
     List<Business.Customer> customersToInsert = new List<Business.Customer>();
     List<Business.Customer> customersToUpdate = new List<Business.Customer>();
 
-
     string ErrorMessage = "";
 
+    //init
     protected override async Task OnInitializedAsync()
     {
         customers = await customerService.List();
     }
 
-
-
-
-
+    //Category filter clear
     async Task  ClearCategoryFilter()
     {
         currentCustomerCategory = null;
         await OnSelectedCategoryChange(null);
     }
 
+    //Select an category type
     async Task OnSelectedCategoryChange(object value)
     {
-
         currentCustomerCategory = (CustomerCategory?)value;
         if (currentCustomerCategory == null)
         {
@@ -175,9 +172,7 @@
         }   
     }
 
-
-
-
+    //Reset insert and update lists
     void Reset()
     {
         customersToInsert.Clear();
@@ -185,6 +180,7 @@
         ErrorMessage = "";
     }
 
+    //Remove an insert and update customer from the list
     void Reset(Business.Customer customer)
     {
         customersToInsert.Remove(customer);
@@ -192,12 +188,9 @@
         ErrorMessage = "";
     }
 
-
+    // Edit grid row
     async Task EditRow(Business.Customer customer)
     {
-
-
-
         if (editMode == DataGridEditMode.Single && customersToInsert.Count() > 0)
         {
             Reset();
@@ -207,6 +200,7 @@
         await customerGrid.EditRow(customer);
     }
 
+    //Update the customer
     async Task OnUpdateRow(Business.Customer customer)
     {
 
@@ -227,19 +221,23 @@
 
     }
 
+    //Save the row
     async Task SaveRow(Business.Customer customer)
     {
 
         await customerGrid.UpdateRow(customer);
     }
 
-    void CancelEdit(Business.Customer customer)
+    //Cancel from edit
+    async Task CancelEdit(Business.Customer customer)
     {
         Reset(customer);
-
         customerGrid.CancelEditRow(customer);
+        customers = await customerService.List();
+
     }
 
+    //Delete a customer
     async Task DeleteRow(Business.Customer customer)
     {
 
@@ -258,6 +256,7 @@
         Reset();
     }
 
+    //insert a new row
     async Task InsertRow()
     {
         customers = await customerService.List();
@@ -275,6 +274,7 @@
 
     }
 
+    //create a new customer
     async Task  OnCreateRow(Business.Customer customer)
     {
         var result = await customerService.Create(customer);
